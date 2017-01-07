@@ -1,0 +1,6 @@
+[package]
+name = "rust_serialization_benchmark"
+version = "0.1.0"
+authors = ["theduke <chris@theduke.at>"]
+
+[dependencies]
