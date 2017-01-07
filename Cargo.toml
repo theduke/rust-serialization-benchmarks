@@ -5,9 +5,17 @@ authors = ["theduke <chris@theduke.at>"]
 
 [dependencies]
 bencher = { git = "https://github.com/theduke/bencher.git" }
-serde = "0.8"
-serde_derive = "0.8"
+serde = "*"
+serde_derive = "*"
 
-serde_json = "0.8"
-bincode = { version = "0.6", features = ["serde"] }
+serde_json = "*"
+bincode = { version = "*", features = ["serde"] }
+cbor = "*"
+serde_cbor = "*"
+serde_yaml = "*"
+rmp-serde = "*"
+toml = { version = "*", features = ["serde"] }
+serde-pickle = "*"
+serde-hjson = "*"
+bson = "*"
 

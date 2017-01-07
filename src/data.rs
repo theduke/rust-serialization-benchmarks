@@ -11,7 +11,8 @@ pub struct StaticData {
     v_u8: u8,
     v_u16: u16,
     v_u32: u32,
-    v_u64: u64,
+    // Not all libraries support u64, so I'm skipping it.
+    //v_u64: u64,
     v_f32: f32,
     v_f64: f64, 
     v_char_ascii: char,
@@ -30,7 +31,7 @@ pub fn build_static_data() -> StaticData {
         v_u8: std::u8::MAX,
         v_u16: std::u16::MAX,
         v_u32: std::u32::MAX,
-        v_u64: std::u64::MAX,
+        //v_u64: std::u64::MAX,
         v_f32: std::f32::MAX,
         v_f64: std::f64::MAX, 
         v_char_ascii: 'x',
