@@ -36,9 +36,15 @@ make_tests! {
     }
 
     serde_json_value("serde_json_value") {
-        convert_data |data| -> serde_json::Value { serde_json::to_value(data) }
-        serialize |data| { serde_json::to_string(data).unwrap() }
-        deserialize |data| { serde_json::from_str(data).unwrap() }
+        convert_data |data| -> serde_json::Value { 
+            serde_json::to_value(data) 
+        }
+        serialize |data| {
+            serde_json::to_string(data).unwrap() 
+        }
+        deserialize |data| { 
+            serde_json::from_str(data).unwrap() 
+        }
     }
 
     bincode("bincode") {

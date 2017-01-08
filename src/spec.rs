@@ -31,6 +31,7 @@ pub struct CaseResult {
     pub name: String,
     pub serialize: Result,
     pub deserialize: Result,
+    pub data: Vec<u8>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -62,7 +63,8 @@ macro_rules! test_variant {
             let ser_samples = bencher::bench::benchmark(|bench| {
                 let $ser_data = &data;
                 bench.iter(|| {
-                    $($ser_code)*
+                    let res = { $($ser_code)* };
+                    res
                 });
             });
 
@@ -71,7 +73,8 @@ macro_rules! test_variant {
                 let $deser_data = &serialized_result;
                 //let mut target = serialized_result.clone();
                 bench.iter(|| {
-                    let _: $data_type = { $($deser_code)* };
+                    let res: $data_type = { $($deser_code)* };
+                    res
                 });
             });
             
@@ -79,6 +82,7 @@ macro_rules! test_variant {
                 name: $variant_name.to_string(),
                 serialize: Result::from_samples(ser_samples, byte_len),
                 deserialize: Result::from_samples(deser_samples, byte_len),
+                data: (&serialized_result).clone().into(),
             };
             println!("        Serialize: median: {}ns / mb/sec: {}",
                      res.serialize.ns_median,
@@ -119,7 +123,8 @@ macro_rules! test_variant {
             let ser_samples = bencher::bench::benchmark(|bench| {
                 let $ser_data = &data;
                 bench.iter(|| {
-                    $($ser_code)*
+                    let res = { $($ser_code)* };
+                    res
                 });
             });
 
@@ -128,7 +133,8 @@ macro_rules! test_variant {
                 let $deser_data = &serialized_result;
                 //let mut target = serialized_result.clone();
                 bench.iter(|| {
-                    let _: $converted_type = { $($deser_code)* };
+                    let res: $converted_type = { $($deser_code)* };
+                    res
                 });
             });
             
@@ -136,6 +142,7 @@ macro_rules! test_variant {
                 name: $variant_name.to_string(),
                 serialize: Result::from_samples(ser_samples, byte_len),
                 deserialize: Result::from_samples(deser_samples, byte_len),
+                data: (&serialized_result).clone().into(),
             };
             println!("        Serialize: median: {}ns / mb/sec: {}",
                      res.serialize.ns_median,
@@ -147,8 +154,6 @@ macro_rules! test_variant {
         }
 
     }
-
-
 }
 
 #[macro_export]
