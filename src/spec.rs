@@ -1,5 +1,7 @@
 #![macro_use]
 
+pub use std::collections::BTreeMap;
+
 use bencher;
 
 #[derive(Clone, Debug, Serialize)]
@@ -26,6 +28,7 @@ impl Result {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct CaseResult {
+    pub name: String,
     pub serialize: Result,
     pub deserialize: Result,
 }
@@ -33,9 +36,119 @@ pub struct CaseResult {
 #[derive(Clone, Debug, Serialize)]
 pub struct LibraryResult {
     pub library: String,
-    pub static_data: CaseResult,
-    pub dynamic_data: CaseResult,
-    pub nested_data: CaseResult,
+    pub cases: BTreeMap<String, CaseResult>,
+}
+
+macro_rules! test_variant {
+    {
+        variant($variant_name:expr, $data_type:ty, $creater:expr) {
+            serialize |$ser_data:ident| { $($ser_code:tt)* }
+            deserialize |$deser_data:ident| { $($deser_code:tt)* }
+        }
+    } => {
+
+        {
+            println!("    Variant {}:", $variant_name);
+            let data = $creater;
+
+            // Serialize data to get a byte count. 
+            let serialized_result = {
+                let $ser_data = &data;
+                $($ser_code)*
+            };
+            let byte_len = serialized_result.len();
+            
+            // Serialize.
+            let ser_samples = bencher::bench::benchmark(|bench| {
+                let $ser_data = &data;
+                bench.iter(|| {
+                    $($ser_code)*
+                });
+            });
+
+            // Deserialize.
+            let deser_samples = bencher::bench::benchmark(|bench| {
+                let $deser_data = &serialized_result;
+                //let mut target = serialized_result.clone();
+                bench.iter(|| {
+                    let _: $data_type = { $($deser_code)* };
+                });
+            });
+            
+            let res = CaseResult {
+                name: $variant_name.to_string(),
+                serialize: Result::from_samples(ser_samples, byte_len),
+                deserialize: Result::from_samples(deser_samples, byte_len),
+            };
+            println!("        Serialize: median: {}ns / mb/sec: {}",
+                     res.serialize.ns_median,
+                     res.serialize.mb_per_sec);
+            println!("        Deserialize: median: {}ns / mb/sec: {}",
+                     res.deserialize.ns_median,
+                     res.deserialize.mb_per_sec);
+            res
+        }
+
+    };
+
+    {
+        variant($variant_name:expr, $data_type:ty, $creater:expr) {
+            convert_data |$convert_data:ident| -> $converted_type:ty { $($convert_code:tt)* }
+            serialize |$ser_data:ident| { $($ser_code:tt)* }
+            deserialize |$deser_data:ident| { $($deser_code:tt)* }
+        }
+    } => {
+
+        {
+            println!("    Variant {}:", $variant_name);
+            let data = $creater;
+            // Convert data.
+            let data: $converted_type = {
+                let $convert_data = data;
+                $( $convert_code )*
+            };
+
+            // Serialize data to get a byte count. 
+            let serialized_result = {
+                let $ser_data = &data;
+                $($ser_code)*
+            };
+            let byte_len = serialized_result.len();
+            
+            // Serialize.
+            let ser_samples = bencher::bench::benchmark(|bench| {
+                let $ser_data = &data;
+                bench.iter(|| {
+                    $($ser_code)*
+                });
+            });
+
+            // Deserialize.
+            let deser_samples = bencher::bench::benchmark(|bench| {
+                let $deser_data = &serialized_result;
+                //let mut target = serialized_result.clone();
+                bench.iter(|| {
+                    let _: $converted_type = { $($deser_code)* };
+                });
+            });
+            
+            let res = CaseResult {
+                name: $variant_name.to_string(),
+                serialize: Result::from_samples(ser_samples, byte_len),
+                deserialize: Result::from_samples(deser_samples, byte_len),
+            };
+            println!("        Serialize: median: {}ns / mb/sec: {}",
+                     res.serialize.ns_median,
+                     res.serialize.mb_per_sec);
+            println!("        Deserialize: median: {}ns / mb/sec: {}",
+                     res.deserialize.ns_median,
+                     res.deserialize.mb_per_sec);
+            res
+        }
+
+    }
+
+
 }
 
 #[macro_export]
@@ -43,152 +156,42 @@ macro_rules! make_tests {
     {
         $(
             $library:ident($name:expr) {
-                serialize |$ser_data:ident| { $($ser_code:tt)* }
-                deserialize |$deser_data:ident| { $($deser_code:tt)* }
+                $( $code:tt )*
             }
         )*
     } => {
 
         fn run_tests() -> Vec<::spec::LibraryResult> {
             let mut results = Vec::new();
-
-            $(
-                {
+            
+            {
+                $(
                     println!("##########\nTesting {}:", $name);
-                    
-                    // STATIC data.
-                    println!("  Static data:");
-                    let static_case = {
-                        
-                        let data = build_static_data();
-                        // Serialize data to get a byte count. 
-                        let serialized_result = {
-                            let $ser_data = &data;
-                            $($ser_code)*
-                        };
-                        let byte_len = serialized_result.len();
-                        
-                        
-                        // Serialize.
-                        let ser_samples = bencher::bench::benchmark(|bench| {
-                            let $ser_data = &data;
-                            bench.iter(|| {
-                                $($ser_code)*
-                            });
-                        });
-
-                        // Deserialize.
-                        let deser_samples = bencher::bench::benchmark(|bench| {
-                            let $deser_data = &serialized_result.clone();
-                            bench.iter(|| {
-                                let _: StaticData = { $($deser_code)* };
-                            });
-                        });
-
-                        CaseResult {
-                            serialize: Result::from_samples(ser_samples, byte_len),
-                            deserialize: Result::from_samples(deser_samples, byte_len),
-                        }
+                    let mut lib_result = LibraryResult {
+                        library: $name.to_string(),    
+                        cases: BTreeMap::new(),
                     };
-                    println!("    Serialize: median: {}ns / mb/sec: {}",
-                             static_case.serialize.ns_median,
-                             static_case.serialize.mb_per_sec);
-                    println!("    Deserialize: median: {}ns / mb/sec: {}",
-                             static_case.deserialize.ns_median,
-                             static_case.deserialize.mb_per_sec);
 
-                    // Dynamic data.
-                    println!("  Dynamic data:");
-                    let dynamic_case = {
-                        
-                        let data = build_dynamic_data();
-                        // Serialize data to get a byte count. 
-                        let serialized_result = {
-                            let $ser_data = &data;
-                            $($ser_code)*
-                        };
-                        let byte_len = serialized_result.len();
-                        
-                        
-                        // Serialize.
-                        let ser_samples = bencher::bench::benchmark(|bench| {
-                            let $ser_data = &data;
-                            bench.iter(|| {
-                                $($ser_code)*
-                            });
-                        });
-
-                        // Deserialize.
-                        let deser_samples = bencher::bench::benchmark(|bench| {
-                            let $deser_data = &serialized_result.clone();
-                            bench.iter(|| {
-                                let _: DynamicData = { $($deser_code)* };
-                            });
-                        });
-
-                        CaseResult {
-                            serialize: Result::from_samples(ser_samples, byte_len),
-                            deserialize: Result::from_samples(deser_samples, byte_len),
-                        }
+                    let res = test_variant! {
+                        variant("static", StaticData, StaticData::new()) { $( $code )* }
                     };
-                    println!("    Serialize: median: {}ns / mb/sec: {}",
-                             dynamic_case.serialize.ns_median,
-                             dynamic_case.serialize.mb_per_sec);
-                    println!("    Deserialize: median: {}ns / mb/sec: {}",
-                             dynamic_case.deserialize.ns_median,
-                             dynamic_case.deserialize.mb_per_sec);
+                    lib_result.cases.insert("static".into(), res);
 
-                    // Nested data.
-                    println!("  Nested data:");
-                    let nested_case = {
-                        let data = build_nested_data();
-                        // Serialize data to get a byte count. 
-                        let serialized_result = {
-                            let $ser_data = &data;
-                            $($ser_code)*
-                        };
-                        let byte_len = serialized_result.len();
-                        
-                        
-                        // Serialize.
-                        let ser_samples = bencher::bench::benchmark(|bench| {
-                            let $ser_data = &data;
-                            bench.iter(|| {
-                                $($ser_code)*
-                            });
-                        });
-
-                        // Deserialize.
-                        let deser_samples = bencher::bench::benchmark(|bench| {
-                            let $deser_data = &serialized_result;
-                            bench.iter(|| {
-                                let _: NestedData = { $($deser_code)* };
-                            });
-                        });
-
-                        CaseResult {
-                            serialize: Result::from_samples(ser_samples, byte_len),
-                            deserialize: Result::from_samples(deser_samples, byte_len),
-                        }
+                    let res = test_variant! {
+                        variant("dynamic", DynamicData, DynamicData::new()) { $( $code )* }
                     };
-                    println!("    Serialize: median: {}ns / mb/sec: {}",
-                             nested_case.serialize.ns_median,
-                             nested_case.serialize.mb_per_sec);
-                    println!("    Deserialize: median: {}ns / mb/sec: {}",
-                             nested_case.deserialize.ns_median,
-                             nested_case.deserialize.mb_per_sec);
+                    lib_result.cases.insert("dynamic".into(), res);
 
-                    let lib_res = LibraryResult {
-                        library: $name.to_string(),
-                        static_data: static_case,
-                        dynamic_data: dynamic_case,
-                        nested_data: nested_case,
+                    let res = test_variant! {
+                        variant("nested", NestedData, NestedData::new()) { $( $code )* }
                     };
-                    results.push(lib_res);
+                    lib_result.cases.insert("nested".into(), res);
+
+                    results.push(lib_result);
                     println!("##########\n");
-                }
-            )*
-    
+                )*
+            }
+
             results
         }
     }
