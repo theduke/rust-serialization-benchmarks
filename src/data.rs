@@ -1,7 +1,7 @@
 use std;
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StaticData {
     v_bool: bool,
     v_i8: i8,
@@ -43,7 +43,7 @@ impl StaticData {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DynamicData {
     v_static: StaticData,
     v_str_empty: String,
@@ -75,7 +75,7 @@ impl DynamicData {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct NestedData {
     v_data: DynamicData,
     v_list: Vec<DynamicData>,

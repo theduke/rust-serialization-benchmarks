@@ -27,8 +27,12 @@ use spec::*;
 make_tests! {
 
     serde_json_struct("serde_json_struct") {
-        serialize |data| { serde_json::to_string(data).unwrap() }
-        deserialize |data| { serde_json::from_str(data).unwrap() }
+        serialize |data| { 
+            serde_json::to_string(data).unwrap() 
+        }
+        deserialize |data| { 
+            serde_json::from_str(data).unwrap() 
+        }
     }
 
     serde_json_value("serde_json_value") {
