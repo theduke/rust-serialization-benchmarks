@@ -3,7 +3,39 @@
 This is a rust crate that compares the performance of various Rust serialization 
 libraries.
 
-I'll add some nice charts with results soon.
+## Libraries
+
+* [serde_json](https://github.com/serde-rs/json)
+* [bincode](https://github.com/TyOverby/bincode)
+* [serde_cbor](https://github.com/pyfisch/cbor);
+* [rmp_serde](https://github.com/3Hren/msgpack-rust)
+* [serde_yaml](https://github.com/dtolnay/serde-yaml)
+* [serde_pickle](https://github.com/birkenfeld/serde-pickle)
+* [serde_hjson](https://github.com/hjson/hjson-rust)
+
+## Results
+
+I'll put some pretty graphs and analysis here soon.
+
+Note that this benchmark also tests formats for which speed is not really a big
+concern, like toml and yaml. They are just included for reference.
+
+## How To Run The Benchmarks
+
+Running the benchmarks is easy, as long as you have rust nightly availbe 
+(preferably via rustup).
+
+```bash
+git clone https://github.com/theduke/rust-serialization-benchmarks.git 
+cd rust-serialization-benchmarks
+rustup override set nightly
+cargo run --release
+```
+
+This will both print the benchmark results to stdout, and write a `results.json` 
+file that contains detailed results as JSON.
+
+Please note that the release build can take quite a while...
 
 ## Test Setup
 
@@ -36,23 +68,6 @@ public to get at more detailed information than just the median.
 
 The *mb per second* data point is calculated by taking the byte length of the 
 serialized data and extrapolating from the *median*.
-
-## How To Run The Benchmarks
-
-Running the benchmarks is easy, as long as you have rust nightly availbe 
-(preferably via rustup).
-
-```bash
-git clone https://github.com/theduke/rust-serialization-benchmarks.git 
-cd rust-serialization-benchmarks
-rustup override set nightly
-cargo run --release
-```
-
-This will both print the benchmark results to stdout, and write a `results.json` 
-file that contains detailed results as JSON.
-
-Please note that the release build can take quite a while...
 
 ## How To Add Another Library
 
